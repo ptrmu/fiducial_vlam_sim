@@ -1,6 +1,4 @@
 
-import numpy as np
-import Transformation as tf
 from CameraOrMarker import *
 
 
@@ -12,7 +10,7 @@ class Scenarios:
         self.marker_len = 0.162717998
 
         # generate_solve_pnp_inputs options
-        self.use_sigma_points = True
+        self.use_sigma_points = False
         self.use_dist_params = True
 
         # Pick some camera calibration values
@@ -44,31 +42,6 @@ class Scenarios:
             self.rpy_world_camera = (0., 0., 0.)
             self.xyz_world_camera = (-1., 0., -1.5)
             self.ident = "looking up"
-
-        # old parameters
-        # # the fixed/known marker pose and simulated camera pose
-        # self.t_world_marker_a = tf.Transformation.from_rpy(*self.rpy_world_marker_a,
-        #                                                    translation=np.array(self.xyz_world_marker_a))
-        # self.t_world_marker_b = tf.Transformation.from_rpy(*self.rpy_world_marker_b,
-        #                                                    translation=np.array(self.xyz_world_marker_b))
-        # self.t_world_marker = self.t_world_marker_a
-        #
-        # self.t_world_camera_a = tf.Transformation.from_rpy(*self.rpy_world_camera_a,
-        #                                                    translation=np.array(self.xyz_world_camera_a))
-        # self.t_world_camera_b = tf.Transformation.from_rpy(*self.rpy_world_camera_b,
-        #                                                    translation=np.array(self.xyz_world_camera_b))
-        # self.t_world_camera = self.t_world_camera_a
-        #
-        # # get the projected points of this marker.
-        # self.cam_aa = CameraAndMarker.CameraAndMarker(t_world_camera=self.t_world_camera_a,
-        #                                               t_world_marker=self.t_world_marker_a)
-        # self.cam_ab = CameraAndMarker.CameraAndMarker(t_world_camera=self.t_world_camera_a,
-        #                                               t_world_marker=self.t_world_marker_b)
-        # self.cam_ba = CameraAndMarker.CameraAndMarker(t_world_camera=self.t_world_camera_b,
-        #                                               t_world_marker=self.t_world_marker_a)
-        # self.cam_bb = CameraAndMarker.CameraAndMarker(t_world_camera=self.t_world_camera_b,
-        #                                               t_world_marker=self.t_world_marker_b)
-        # self.cam = self.cam_aa
 
     @property
     def marker_a(self):
