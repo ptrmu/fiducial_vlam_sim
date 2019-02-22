@@ -1,7 +1,6 @@
 
 import numpy as np
 import Transformation as tf
-import CameraAndMarker
 from CameraOrMarker import *
 
 
