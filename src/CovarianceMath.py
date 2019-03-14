@@ -362,63 +362,50 @@ if __name__ == "__main__":
 
 
     def transformsclose(t, tt):
-        if t[0, 3] >= np.pi:
-            t[0, 3] -= np.pi * 2
-        elif t[0, 3] < -np.pi:
-            t[0, 3] += np.pi * 2
-        if t[0, 4] >= np.pi:
-            t[0, 4] -= np.pi * 2
-        elif t[0, 4] < -np.pi:
-            t[0, 4] += np.pi * 2
-        if t[0, 5] >= np.pi:
-            t[0, 5] -= np.pi * 2
-        elif t[0, 5] > np.pi:
-            t[0, 5] = np.pi * 2
-        if tt[3] >= np.pi:
-            tt[3] -= np.pi * 2
-        elif tt[3] < -np.pi:
-            tt[3] += np.pi * 2
-        if tt[4] >= np.pi:
-            tt[4] -= np.pi * 2
-        elif tt[4] < -np.pi:
-            tt[4] += np.pi * 2
-        if tt[5] >= np.pi:
-            tt[5] -= np.pi * 2
-        elif tt[5] < -np.pi:
-            tt[5] += np.pi * 2
-        return np.allclose(t, tt)
+        pi2 = np.pi * 2.0
+        if not (np.isclose(t[0, 3], tt[3]) or np.isclose(t[0, 3] + pi2, tt[3]) or np.isclose(t[0, 3],
+                                                                                             tt[3] + pi2)): return False
+        if not (np.isclose(t[0, 4], tt[4]) or np.isclose(t[0, 4] + pi2, tt[4]) or np.isclose(t[0, 4],
+                                                                                             tt[4] + pi2)): return False
+        if not (np.isclose(t[0, 5], tt[5]) or np.isclose(t[0, 5] + pi2, tt[5]) or np.isclose(t[0, 5],
+                                                                                             tt[5] + pi2)): return False
+        return np.allclose(t[0, 0:3], tt[0:3])
 
 
-    def test_one_element_transform(tc, t1, t2):
+    def test_one_element_transform(args):
+        tc, t1, t2 = args
         t = tc.transform_transformation(t1, t2)
         tt1 = new_Transformation(t1)
         tt2 = new_Transformation(t2)
         tt = from_Transformation(tt1.as_right_combined(tt2))
         if not transformsclose(t, tt):
-            assert np.allclose(t, tt)
+            assert transformsclose(t, tt)
 
 
-    def test_inverse(tc, t1):
+    def test_one_element_inverse(args):
+        tc, t1 = args
         t = tc.invert_transformation(t1)
         tt1 = new_Transformation(t1)
         tt = from_Transformation(tt1.as_inverse())
         if not transformsclose(t, tt):
-            assert np.allclose(t, tt)
+            assert transformsclose(t, tt)
 
 
     def test():
         mcs = MonteCarloSimulation(1)
         tc = TransformationCalculator(mcs)
 
-        test_one_element_transform(tc,
-                                   (-1., -1., -1., 0., -np.pi / 2, 0.),
-                                   (-1., -1., -1., np.pi, -np.pi / 2, 0.))
+        tweak = 1.0e-4
+        gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 7)
+        gen_args_lin = (-1., 2., 1)
 
-        for t1, t2 in transform_2_gen((-np.pi / 2, np.pi, 3), (-1., 2., 3)):
-            test_one_element_transform(tc, t1, t2)
+        test_2t_cases = [(tc, t1, t2) for t1, t2 in transform_2_gen(gen_args_ang, gen_args_lin)]
+        for test_case in test_2t_cases:
+            test_one_element_transform(test_case)
 
-        # for t1 in transform_gen((-np.pi / 2, np.pi, 3), (-1., 2., 3)):
-        #     test_inverse(tc, t1)
+        test_1t_cases = [(tc, t1) for t1 in transform_gen(gen_args_ang, gen_args_lin)]
+        for test_case in test_1t_cases:
+            test_one_element_inverse(test_case)
 
         # cm = CovarianceMath(None)
         #
