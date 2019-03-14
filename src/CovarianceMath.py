@@ -38,7 +38,7 @@ class TransformationCalculator:
         self.sim = simulation
 
     def _unpack(self, twc):
-        i = 6;
+        i = 6
         u = twc[0:i]
         if len(twc) <= 6:
             return u, None
@@ -188,131 +188,9 @@ class TransformationCalculator:
         return t
 
 
-# class MultiTransformMath:
-#     def __init__(self):
-#         pass
-#
-#
-# class TransformOperations:
-#     def __init__(self):
-#         pass
-#
-#     def matrix_from_rpy(self, rpy):
-#         pass
-#
-#     def rpy_from_matrix(self, mat):
-#         pass
-#
-#
-# class TransformMath:
-#     def __init__(self, transform_operations):
-#         self.to = transform_operations
-#
-#     def translate_translation(self, translation, translation_1):
-#         return self.to.add(translation, translation_1)
-#
-#     def translate_transformation(self, translation, transform_1):
-#         return self.to.new_transformation(
-#             self.to.get_transformation_rotation(transform_1),
-#             self.translate_translation(translation, self.to.get_transformation_translation(transform_1)))
-#
-#     def rotate_rotation(self, rotation, rotation_1):
-#         return self.to.rpy_from_matrix(self.to.dot(
-#             self.to.matrix_from_rpy(rotation),
-#             self.to.matrix_from_rpy(rotation_1)))
-#
-#     def rotate_transform(self, rotation, transform_1):
-#         pass
-#
-#     def transform_translation(self, transformation, translation_1):
-#         pass
-#
-#     def transform_rotation(self, transformation, rotation_1):
-#         pass
-#
-#     def transform_transformation(self, transformation, transformation_1):
-#         pass
-#
-#     def invert_translation(self, translation):
-#         pass
-#
-#     def invert_rotation(selfself, rotation):
-#         pass
-#
-#     def invert_transformation(self, transformation):
-#         pass
-#
-
 class CovarianceMath:
     def __init__(self, sim):
         self.sim = sim
-
-    @staticmethod
-    def assert_arg_size(var1, var2, size):
-        assert (len(var1.shape) != 1 or var1.shape[0] == size)
-        assert (len(var1.shape) != 2 or var1.shape[1] == size)
-        assert (len(var2.shape) != 1 or var2.shape[0] == size)
-        assert (len(var2.shape) != 2 or var2.shape[1] == size)
-
-    @staticmethod
-    def new_translation(x, y, z):
-        return np.array([x, y, z])
-
-    @staticmethod
-    def new_rotation(r, p, y):
-        return np.array([r, p, y])
-
-    def new_transformation(self, rotation,
-                           translation):
-        CovarianceMath.assert_arg_size(rotation, translation, 3)
-        return np.hstack((rotation, translation))
-
-    def translate_position(self, translate, translation):
-        print(translate.shape, translation.shape)
-        sum = translate + translation
-        t = 4
-
-    def rotation_matrices_from_rpys(self, rpys):
-        n = rpys.shape[0]
-        si, sj, sk = np.sin(rpys[:, 0]), np.sin(rpys[:, 1]), np.sin(rpys[:, 2])
-        ci, cj, ck = np.cos(rpys[:, 0]), np.cos(rpys[:, 1]), np.cos(rpys[:, 2])
-        cc, cs = ci * ck, ci * sk
-        sc, ss = si * ck, si * sk
-
-        m = np.ones((n, 3, 3))
-        m[:, 0, 0] = cj * ck
-        m[:, 0, 1] = sj * sc - cs
-        m[:, 0, 2] = sj * cc + ss
-        m[:, 1, 0] = cj * sk
-        m[:, 1, 1] = sj * ss + cc
-        m[:, 1, 2] = sj * cs - sc
-        m[:, 2, 0] = -sj
-        m[:, 2, 1] = cj * si
-        m[:, 2, 2] = cj * ci
-        return m
-
-    def rpys_from_rotation_matrices(self, mats):
-        n = mats.shape[0]
-        rs = np.zeros([n])
-        ps = np.zeros([n])
-        ys = np.zeros([n])
-
-        sy = np.sqrt(mats[:, 0, 0] * mats[:, 0, 0] + mats[:, 1, 0] * mats[:, 1, 0])
-
-        sy_ind = sy >= 1e-6
-        rs[sy_ind] = np.arctan2(mats[sy_ind, 2, 1], mats[sy_ind, 2, 2])
-        ps[sy_ind] = np.arctan2(-mats[sy_ind, 2, 0], sy[sy_ind])
-        ys[sy_ind] = np.arctan2(mats[sy_ind, 1, 0], mats[sy_ind, 0, 0])
-
-        sy_ind = sy < 1e-6
-        rs[sy_ind] = np.arctan2(-mats[sy_ind, 1, 2], mats[sy_ind, 1, 1])
-        ps[sy_ind] = np.arctan2(-mats[sy_ind, 2, 0], sy[sy_ind])
-        ys[sy_ind] = 0
-
-        return np.vstack((rs, ps, ys)).transpose()
-
-    def transform_transformation(self, transform, transformation):
-        pass
 
 
 if __name__ == "__main__":
@@ -363,12 +241,18 @@ if __name__ == "__main__":
 
     def transformsclose(t, tt):
         pi2 = np.pi * 2.0
-        if not (np.isclose(t[0, 3], tt[3]) or np.isclose(t[0, 3] + pi2, tt[3]) or np.isclose(t[0, 3],
-                                                                                             tt[3] + pi2)): return False
-        if not (np.isclose(t[0, 4], tt[4]) or np.isclose(t[0, 4] + pi2, tt[4]) or np.isclose(t[0, 4],
-                                                                                             tt[4] + pi2)): return False
-        if not (np.isclose(t[0, 5], tt[5]) or np.isclose(t[0, 5] + pi2, tt[5]) or np.isclose(t[0, 5],
-                                                                                             tt[5] + pi2)): return False
+        if not (np.isclose(t[0, 3], tt[3])
+                or np.isclose(t[0, 3] + pi2, tt[3])
+                or np.isclose(t[0, 3], tt[3] + pi2)):
+            return False
+        if not (np.isclose(t[0, 4], tt[4])
+                or np.isclose(t[0, 4] + pi2, tt[4])
+                or np.isclose(t[0, 4], tt[4] + pi2)):
+            return False
+        if not (np.isclose(t[0, 5], tt[5])
+                or np.isclose(t[0, 5] + pi2, tt[5])
+                or np.isclose(t[0, 5], tt[5] + pi2)):
+            return False
         return np.allclose(t[0, 0:3], tt[0:3])
 
 
@@ -406,69 +290,6 @@ if __name__ == "__main__":
         test_1t_cases = [(tc, t1) for t1 in transform_gen(gen_args_ang, gen_args_lin)]
         for test_case in test_1t_cases:
             test_one_element_inverse(test_case)
-
-        # cm = CovarianceMath(None)
-        #
-        # r1 = [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
-        # r2 = np.array(r1) + 3
-        # r1 = np.array([r1])
-        # r2 = np.array([r2])
-        # r1a = np.transpose(r1, (0, 2, 1))
-        # r1b = r1a.reshape(1, 3, 3, 1)
-        # r2b = r2.reshape(1, 3, 1, 3)
-        # r2c = r1b * r2b
-        # r = np.sum(r2c, -3)
-        # t1 = r1[0, :, :] @ r2[0, :, :]
-        #
-        # v = [3, 4]
-        # v = np.array([v])
-        # vb = v.reshape(1, 1, 2)
-        # vc = r1 * vb
-        # vd = np.sum(vc, -1)
-        # t2 = np.dot(r1[0, :, :], v[0, :])
-        #
-        #
-        # one_a_pos = np.array([1, 2, 3])
-        # one_b_pos = np.array([9, 10, 11])
-        #
-        # two__pos = np.array([[10, 11, 12], [23, 24, 25]])
-        #
-        # print(cm.new_transformation(one_a_pos, one_b_pos))
-        # print(cm.translate_position(two__pos, one_b_pos))
-        #
-        # increment = np.pi / 8
-        #
-        # rpys_1 = np.array([[1., 1., 2.], [2.356194490192345, 1.5707963267948966, -2.748893571891069]])
-        # rots_1 = cm.rotation_matrices_from_rpys(rpys_1)
-        # rots_2 = transformations.euler_matrix(rpys_1[0, 0], rpys_1[0, 1], rpys_1[0, 2])
-        # rpys_3 = cm.rpys_from_rotation_matrices(rots_1)
-        #
-        # rot_3 = transformations.euler_matrix(rpys_1[1, 0], rpys_1[1, 1], rpys_1[1, 2])
-        # rpy_4 = transformations.euler_from_matrix(rot_3)
-        #
-        # rpys = []
-        # for r in np.arange(-np.pi, np.pi, increment):
-        #     for p in np.arange(-np.pi, np.pi, increment):
-        #         for y in np.arange(-np.pi, np.pi, increment):
-        #             rpys.append([r, p, y])
-        #
-        # rpys = np.array(rpys)
-        # Rs = cm.rotation_matrices_from_rpys(rpys)
-        # rpys_out = cm.rpys_from_rotation_matrices(Rs)
-        #
-        # for i in range(Rs.shape[0]):
-        #     rpy = rpys[i, :]
-        #     R1 = Rs[i, :, :]
-        #     rpy_out = rpys_out[i, :]
-        #
-        #     R2 = transformations.euler_matrix(rpy[0], rpy[1], rpy[2])
-        #     R2 = R2[0:3, 0:3]
-        #     rpy_test = transformations.euler_from_matrix(R2)
-        #
-        #     if not np.allclose(R1, R2):
-        #         t = 2;
-        #     if not np.allclose(rpy_out, rpy_test):
-        #         t = 4
 
 
     test()
