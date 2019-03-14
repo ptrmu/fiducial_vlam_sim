@@ -28,7 +28,7 @@ class Scenarios:
         self.rpy_world_marker = self.rpy_world_marker_a
         self.xyz_world_marker = self.xyz_world_marker_a
         self.rpy_world_camera_a = (-np.pi / 2, 0., -np.pi / 2)
-        self.xyz_world_camera_a = (-2.5, -.5, 1.5)
+        self.xyz_world_camera_a = (-2.5, -.0, 0.5)
         self.rpy_world_camera_b = (-np.pi / 2, 0., -np.pi / 2)
         self.xyz_world_camera_b = (-2.5, 0.5, .5)
         self.rpy_world_camera = self.rpy_world_camera_a
