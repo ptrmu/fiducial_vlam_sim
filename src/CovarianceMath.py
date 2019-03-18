@@ -1,16 +1,10 @@
 import numpy as np
-import quaternion  # install numpy-quaternion
-import transformations
-import Transformation
 
 
 # elements are stored as 1D arrays or rows in 2D arrays
 # 3 -> translation p (xyz)
 # 6 -> translation covariance pc (xyz)x(xyz)
 # 9 -> translation with covariance pwc
-# 3 -> rotation r (rpy)
-# 6 -> rotation covariance rc (rpy)x(rpy)
-# 9 -> rotation with covariance rwc
 # 6 -> transform t (xyzrpy)
 # 21 -> covariance vector tc (xyzrpy)x(xyzrpy)
 # 	    L of Cholesky factorization
@@ -33,27 +27,67 @@ class MonteCarloSimulation:
         return y, None
 
 
-class TransformationCalculator:
-    def __init__(self, simulation):
-        self.sim = simulation
+class CovarianceMath:
+    def __init__(self, sim):
+        self.sim = sim
 
-    def _unpack(self, twc):
-        i = 6
-        u = twc[0:i]
-        if len(twc) <= 6:
-            return u, None
+    def _unpack(self, with_covariance):
+        # The length of the input determines what it represents and
+        # how to unpack it. The input is a 1D vector.
+        n = len(with_covariance)
+        # a position or transform with no covariance
+        if n == 3 or n == 6:
+            return with_covariance, None
+        # a position or transform with covariance
+        if n == 9:
+            nt = 3
+        elif n == 27:
+            nt = 6
+        else:
+            assert False
 
-        cov = np.zeros([6, 6])
-        for r in range(6):
-            for c in range(r + 1):
-                cov[r, c] = twc[i]
-                if r != c:
-                    cov[c, r] = twc[i]
-                i = i + 1
+        u = with_covariance[0:nt]
+
+        # The diagonal values are stored first
+        i = 2 * nt
+        cov = np.diag(with_covariance[nt:i])
+        cov[1, 0] = with_covariance[i]
+        cov[0, 1] = with_covariance[i]
+        cov[2, 0:2] = with_covariance[(i + 1):(i + 3)]
+        cov[0:2, 2] = with_covariance[(i + 1):(i + 3)]
+        if nt == 6:
+            cov[3, 0:3] = with_covariance[15:18]
+            cov[0:3, 3] = with_covariance[15:18]
+            cov[4, 0:4] = with_covariance[18:22]
+            cov[0:4, 4] = with_covariance[18:22]
+            cov[5, 0:5] = with_covariance[22:27]
+            cov[0:5, 5] = with_covariance[22:27]
+
         return u, cov
 
     def _pack(self, u, cov):
-        return u
+        if cov is None:
+            return u
+
+        n = u.shape[0]
+        assert len(cov.shape) == 2 and cov.shape[0] == n and cov.shape[1] == n
+
+        u_new = np.zeros(9 if n == 3 else 27)
+
+        # Add the mean values
+        u_new[0:n] = u
+
+        # Append the cov with the diagonals first
+        i = 2 * n
+        u_new[n:i] = np.diag(cov)
+        u_new[i] = cov[1, 0]
+        u_new[(i + 1):(i + 3)] = cov[2, 0:2]
+        if n == 6:
+            u_new[15:18] = cov[3, 0:3]
+            u_new[18:22] = cov[4, 0:4]
+            u_new[22:27] = cov[5, 0:5]
+
+        return u_new
 
     def _mats_from_rpys(self, rpys):
         n = rpys.shape[0]
@@ -94,7 +128,7 @@ class TransformationCalculator:
 
         return np.vstack((rs, ps, ys)).transpose()
 
-    def _multi_transform(self, u1, u2):
+    def _multi_transform_transformation(self, u1, u2):
         n = u1.shape[0]
 
         # u1 and u2 are (n, 6) arrays
@@ -103,7 +137,7 @@ class TransformationCalculator:
         xyz2 = u2[:, 0:3]
         rpy2 = u2[:, 3:6]
 
-        # r1, r2, r and (n, 3, 3) arrays
+        # r1, r2, r are (n, 3, 3) arrays
         r1 = self._mats_from_rpys(rpy1)
         r2 = self._mats_from_rpys(rpy2)
 
@@ -121,6 +155,24 @@ class TransformationCalculator:
         u = np.hstack((xyz, rpy))
         return u
 
+    def _multi_transform_position(self, u1, u2):
+        n = u1.shape[0]
+
+        # u1 and u2 are (n, 6) arrays
+        xyz1 = u1[:, 0:3]
+        rpy1 = u1[:, 3:6]
+        xyz2 = u2
+
+        # r1 is (n, 3, 3) array
+        r1 = self._mats_from_rpys(rpy1)
+
+        # xyz = r1 * xyz2
+        xyz = np.sum(r1 * xyz2.reshape(n, 1, 3), -1) + xyz1
+        # xyz_t = np.array([r1[i, :, :] @ xyz2[i, :] + xyz1 for i in range(r1.shape[0])])
+        # assert (np.allclose(xyz, xyz_t))
+
+        return xyz
+
     def _multi_invert(self, u1):
         n = u1.shape[0]
 
@@ -128,18 +180,18 @@ class TransformationCalculator:
         xyz1 = u1[:, 0:3]
         rpy1 = u1[:, 3:6]
 
-        # r1, r and (n, 3, 3) arrays
+        # r1, r are (n, 3, 3) arrays
         r1 = self._mats_from_rpys(rpy1)
 
         # r = inverse(r1) => transpose(r1)
         r = np.transpose(r1, (0, 2, 1))
-        r_t = np.array([np.linalg.inv(r1[i, :, :]) for i in range(r1.shape[0])])
-        assert (np.allclose(r, r_t))
+        # r_t = np.array([np.linalg.inv(r1[i, :, :]) for i in range(r1.shape[0])])
+        # assert (np.allclose(r, r_t))
 
         # xyz = r * -xyz1
         xyz = np.sum(r * (-xyz1.reshape(n, 1, 3)), -1)
-        xyz_t = np.array([r[i, :, :] @ -xyz1[i, :] for i in range(r1.shape[0])])
-        assert (np.allclose(xyz, xyz_t))
+        # xyz_t = np.array([r[i, :, :] @ -xyz1[i, :] for i in range(r1.shape[0])])
+        # assert (np.allclose(xyz, xyz_t))
 
         rpy = self._rpys_from_mats(r)
         u = np.hstack((xyz, rpy))
@@ -154,19 +206,45 @@ class TransformationCalculator:
 
         if cov1 is not None and cov2 is not None:
             u, cov = self.sim.do_simulation_2(u1, cov1, u2, cov2,
-                                              lambda a1, a2: self._multi_transform(a1, a2))
+                                              lambda a1, a2: self._multi_transform_transformation(a1, a2))
 
         elif cov1 is not None:
             u, cov = self.sim.do_simulation(u1, cov1,
-                                            lambda a1: self._multi_transform(a1, u2))
+                                            lambda a1: self._multi_transform_transformation(a1, u2))
 
         elif cov2 is not None:
             u, cov = self.sim.do_simulation(u2, cov2,
-                                            lambda a1: self._multi_transform(u1, a1))
+                                            lambda a1: self._multi_transform_transformation(u1, a1))
 
         else:
             cov = None
-            u = self._multi_transform(np.array([u1]), np.array([u2]))
+            u = self._multi_transform_transformation(np.array([u1]), np.array([u2]))
+
+        t = self._pack(u, cov)
+        return t
+
+    def transform_position(self, t1, x2):
+        assert (len(t1) == 6 or len(t1) == 27)
+        assert (len(x2) == 3 or len(x2) == 9)
+
+        u1, cov1 = self._unpack(t1)
+        u2, cov2 = self._unpack(x2)
+
+        if cov1 is not None and cov2 is not None:
+            u, cov = self.sim.do_simulation_2(u1, cov1, u2, cov2,
+                                              lambda a1, a2: self._multi_transform_position(a1, a2))
+
+        elif cov1 is not None:
+            u, cov = self.sim.do_simulation(u1, cov1,
+                                            lambda a1: self._multi_transform_position(a1, u2))
+
+        elif cov2 is not None:
+            u, cov = self.sim.do_simulation(u2, cov2,
+                                            lambda a1: self._multi_transform_position(u1, a1))
+
+        else:
+            cov = None
+            u = self._multi_transform_position(np.array([u1]), np.array([u2]))
 
         t = self._pack(u, cov)
         return t
@@ -186,110 +264,3 @@ class TransformationCalculator:
 
         t = self._pack(u, cov)
         return t
-
-
-class CovarianceMath:
-    def __init__(self, sim):
-        self.sim = sim
-
-
-if __name__ == "__main__":
-
-    def new_Transformation(t):
-        t1 = np.zeros(6)
-        t1[0:3] = t[3:6]
-        t1[3:6] = t[0:3]
-        return Transformation.Transformation.from_cvec(t1)
-
-
-    def from_Transformation(trans):
-        t1 = trans.as_cvec()
-        t = np.zeros(6)
-        t[0:3] = t1.reshape(6)[3:6]
-        t[3:6] = t1.reshape(6)[0:3]
-        return t
-
-
-    def one_gen(gen_args):
-        start, delta, number = gen_args
-        if number < 2:
-            interval = delta
-        else:
-            interval = delta / (number - 1)
-        for i in range(number):
-            yield start + interval * i
-
-
-    def tri_gen(gen_args):
-        for a in one_gen(gen_args):
-            for b in one_gen(gen_args):
-                for c in one_gen(gen_args):
-                    yield a, b, c
-
-
-    def transform_gen(gen_args_ang, gen_args_lin):
-        for rpy1 in tri_gen(gen_args_ang):
-            for xyz1 in tri_gen(gen_args_lin):
-                yield np.hstack((xyz1, rpy1))
-
-
-    def transform_2_gen(gen_args_ang, gen_args_lin):
-        for t1 in transform_gen(gen_args_ang, gen_args_lin):
-            for t2 in transform_gen(gen_args_ang, gen_args_lin):
-                yield (t1, t2)
-
-
-    def transformsclose(t, tt):
-        pi2 = np.pi * 2.0
-        if not (np.isclose(t[0, 3], tt[3])
-                or np.isclose(t[0, 3] + pi2, tt[3])
-                or np.isclose(t[0, 3], tt[3] + pi2)):
-            return False
-        if not (np.isclose(t[0, 4], tt[4])
-                or np.isclose(t[0, 4] + pi2, tt[4])
-                or np.isclose(t[0, 4], tt[4] + pi2)):
-            return False
-        if not (np.isclose(t[0, 5], tt[5])
-                or np.isclose(t[0, 5] + pi2, tt[5])
-                or np.isclose(t[0, 5], tt[5] + pi2)):
-            return False
-        return np.allclose(t[0, 0:3], tt[0:3])
-
-
-    def test_one_element_transform(args):
-        tc, t1, t2 = args
-        t = tc.transform_transformation(t1, t2)
-        tt1 = new_Transformation(t1)
-        tt2 = new_Transformation(t2)
-        tt = from_Transformation(tt1.as_right_combined(tt2))
-        if not transformsclose(t, tt):
-            assert transformsclose(t, tt)
-
-
-    def test_one_element_inverse(args):
-        tc, t1 = args
-        t = tc.invert_transformation(t1)
-        tt1 = new_Transformation(t1)
-        tt = from_Transformation(tt1.as_inverse())
-        if not transformsclose(t, tt):
-            assert transformsclose(t, tt)
-
-
-    def test():
-        mcs = MonteCarloSimulation(1)
-        tc = TransformationCalculator(mcs)
-
-        tweak = 1.0e-4
-        gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 7)
-        gen_args_lin = (-1., 2., 1)
-
-        test_2t_cases = [(tc, t1, t2) for t1, t2 in transform_2_gen(gen_args_ang, gen_args_lin)]
-        for test_case in test_2t_cases:
-            test_one_element_transform(test_case)
-
-        test_1t_cases = [(tc, t1) for t1 in transform_gen(gen_args_ang, gen_args_lin)]
-        for test_case in test_1t_cases:
-            test_one_element_inverse(test_case)
-
-
-    test()
