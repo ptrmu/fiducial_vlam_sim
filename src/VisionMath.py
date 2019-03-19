@@ -10,7 +10,7 @@ class VisionMath:
         self.dist_coeffs = dist_coeffs
 
     def _get_corners_f_marker(self):
-        m2 = self.sc.marker_len / 2.0
+        m2 = self.marker_len / 2.0
         marker_corners_f_marker = np.array([[-m2, m2, 0.], [m2, m2, 0.], [m2, -m2, 0.], [-m2, -m2, 0.]]).T
         return marker_corners_f_marker
 
@@ -48,11 +48,11 @@ class VisionMath:
 
         if std_corners_f_image is not None:
             cov1 = np.diag(np.ones(8) * std_corners_f_image ** 2)
-            u, cov = self.sim.do_simulation(corners_f_image, cov1,
+            u, cov = self.tm.do_simulation(corners_f_image, cov1,
                                             lambda a1: self._multi_solve_pnp(a1))
 
         else:
             cov = None
-            u = self._multi_solve_pnp(np.array([corners_f_image])
+            u = self._multi_solve_pnp(np.array([corners_f_image]))
 
         return self.tm.pack(u, cov)

@@ -42,8 +42,8 @@ class CameraOrMarker:
     def t_world_xxx(self):
         return tf.Transformation.from_rpy(*self._sim_rpy,
                                           translation=np.array(self._sim_xyz)) if self._simulated_not_derived else \
-            tf.Transformation.from_rpy(self._mu[0], self._mu[1], self._mu[2],
-                                       translation=self._mu[3:6])
+            tf.Transformation.from_rpy(self._mu[3], self._mu[4], self._mu[5],
+                                       translation=self._mu[0:3])
 
     @property
     def simulated_not_derived(self):
@@ -80,11 +80,11 @@ class CameraOrMarker:
 
     def as_rpy_str(self):
         if self._simulated_not_derived:
-            return "sim_rpy:({:.3f}, {:.3f}, {:.3f}) sim_xyz:({:.2f}, {:.2f}, {:.2f})".format(
-                self.sim_rpy[0], self.sim_rpy[1], self.sim_rpy[2],
-                self.sim_xyz[0], self.sim_xyz[1], self.sim_xyz[2])
+            return "sim_xyz:({:.2f}, {:.2f}, {:.2f}) sim_rpy:({:.3f}, {:.3f}, {:.3f})".format(
+                self.sim_xyz[0], self.sim_xyz[1], self.sim_xyz[2],
+                self.sim_rpy[0], self.sim_rpy[1], self.sim_rpy[2])
 
-        return "mu_rpy:({:.3f}, {:.3f}, {:.3f}) mu_xyz:({:.2f}, {:.2f}, {:.2f})".format(
+        return "mu_xyz:({:.2f}, {:.2f}, {:.2f}) mu_rpy:({:.3f}, {:.3f}, {:.3f})".format(
             float(self.mu[0]), float(self.mu[1]), float(self.mu[2]),
             float(self.mu[3]), float(self.mu[4]), float(self.mu[5]))
 

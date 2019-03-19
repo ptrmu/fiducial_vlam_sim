@@ -39,7 +39,7 @@ class Transformation:
 
     @staticmethod
     def from_cvec(cvec):
-        return Transformation.from_rpy(cvec[0], cvec[1], cvec[2], translation=cvec[3:6])
+        return Transformation.from_rpy(cvec[3], cvec[4], cvec[5], translation=cvec[0:3])
 
     def as_rodrigues(self):
         rmat = quaternion.as_rotation_matrix(self.rotation)
@@ -68,8 +68,9 @@ class Transformation:
 
     def as_cvec(self):
         rpy = self.as_rpy()
-        xyz = self.as_translation()
-        return np.array([rpy[0], rpy[1], rpy[2], xyz[0], xyz[1], xyz[2]]).reshape(6, 1)
+        xyz = self.as_translation().reshape(3)
+        cvec = np.array([xyz[0], xyz[1], xyz[2], rpy[0], rpy[1], rpy[2]]).reshape(6, 1)
+        return cvec
 
     def transform_vectors(self, vectors_local):
         points_rotated = quaternion.rotate_vectors(self.rotation, vectors_local, axis=0)

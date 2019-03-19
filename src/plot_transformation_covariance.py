@@ -1,4 +1,3 @@
-
 import Transformation
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +8,7 @@ def calc_cov_ellipse(a, b, d):
     s = np.array([[a, b], [b, d]])
     (w, v) = np.linalg.eig(s)
     angle = np.degrees(np.arctan2(v[1, 0], v[0, 0]))
-    return 2*np.sqrt(w[0]), 2*np.sqrt(w[1]), angle
+    return 2 * np.sqrt(w[0]), 2 * np.sqrt(w[1]), angle
 
 
 class SubPlot:
@@ -58,7 +57,6 @@ def _plot_covariance(sub_plot, t_mu_cvec, t_cov, ts_cvec):
 
 
 def plot_transformation_covariance(title, corners_f_image, t_mu_cvec, t_cov, ts_cvec):
-
     fig = plt.figure()
     fig.suptitle(title)
 
@@ -70,7 +68,7 @@ def plot_transformation_covariance(title, corners_f_image, t_mu_cvec, t_cov, ts_
 
     # show the corners in the image
     for i in range(4):
-        plt.plot(corners_f_image[i*2], corners_f_image[i*2+1], '.r')
+        plt.plot(corners_f_image[i * 2], corners_f_image[i * 2 + 1], '.r')
 
     # The covariances.
     tnp = ts_cvec
@@ -85,8 +83,9 @@ def plot_transformation_covariance(title, corners_f_image, t_mu_cvec, t_cov, ts_
     mins = np.min(tnp, axis=1)
     max_abs = np.max(np.abs(tnp_dev), axis=1)
 
-    means_label = ("t_world_xxx mu, std:\nroll {0[0]}, {1[0]}\npitch {0[1]}, {1[1]}\nyaw {0[2]}, {1[2]}\n" + \
-                   "x {0[3]}, {1[3]}\ny {0[4]}, {1[4]}\nz {0[5]}, {1[5]}").format(means, std)
+    means_label = ("t_world_xxx mu, std:\n" +
+                   "x {0[0]}, {1[0]}\ny {0[1]}, {1[1]}\nz {0[2]}, {1[2]}\n" +
+                   "roll {0[3]}, {1[3]}\npitch {0[4]}, {1[4]}\nyaw {0[5]}, {1[5]}").format(means, std)
     plt.subplot2grid([6, 8], [0, 0])
     plt.axis([0, 1, 0, 1])
     plt.text(0, 0.75, means_label, verticalalignment='top')
@@ -134,24 +133,25 @@ def _plot_view(sub_plot, corners_f_images):
     # show the corners in the image
     for i in range(len(corners_f_images)):
         for r in range(4):
-            plt.plot(corners_f_images[i][r*2], corners_f_images[i][r*2+1], '.r')
+            plt.plot(corners_f_images[i][r * 2], corners_f_images[i][r * 2 + 1], '.r')
 
 
 def _plot_std_values(sub_plot, cov):
     sub_plot.plot2grid([0, 0])
     std = np.sqrt(np.diag(cov))
 
-    cov_label = ("std:\nroll {:5f}\npitch {:5f}\nyaw {:5f}\n" +
-                 "x {:5f}\ny {:5f}\nz {:5f}").format(std[0], std[1], std[2],
-                                                     std[3], std[4], std[5])
+    cov_label = ("std:\n" +
+                 "x {:5f}\ny {:5f}\nz {:5f}" +
+                 "roll {:5f}\npitch {:5f}\nyaw {:5f}").format(std[0], std[1], std[2],
+                                                              std[3], std[4], std[5])
 
     plt.axis([0, 1, 0, 1])
     plt.text(0, 0.75, cov_label, verticalalignment='top')
     ax = plt.gca()
     ax.set_axis_off()
 
-def plot_view_and_covariance(title, corners_f_images, com, do_show=True):
 
+def plot_view_and_covariance(title, corners_f_images, com, do_show=True):
     fig = plt.figure()
     fig.suptitle(title)
 
