@@ -1,5 +1,7 @@
-from CovarianceMath import *
+from TranformMath import *
+from MonteCarloSimulation import *
 import Transformation
+import multiprocessing
 
 
 def new_Transformation(t):
@@ -19,19 +21,11 @@ def from_Transformation(trans):
 
 def transformsclose(t, tt):
     pi2 = np.pi * 2.0
-    if not (np.isclose(t[0, 3], tt[3])
-            or np.isclose(t[0, 3] + pi2, tt[3])
-            or np.isclose(t[0, 3], tt[3] + pi2)):
-        return False
-    if not (np.isclose(t[0, 4], tt[4])
-            or np.isclose(t[0, 4] + pi2, tt[4])
-            or np.isclose(t[0, 4], tt[4] + pi2)):
-        return False
-    if not (np.isclose(t[0, 5], tt[5])
-            or np.isclose(t[0, 5] + pi2, tt[5])
-            or np.isclose(t[0, 5], tt[5] + pi2)):
-        return False
-    return np.allclose(t[0, 0:3], tt[0:3])
+    t = t[0, :]
+    revolution = np.array([0., 0., 0., pi2, pi2, pi2])
+    return np.all(np.any(np.vstack((np.isclose(t, tt),
+                                    np.isclose(t, tt + revolution),
+                                    np.isclose(t, tt - revolution))), axis=0))
 
 
 def one_gen(gen_args):
@@ -86,20 +80,18 @@ def transform_2_gen(gen_args_ang, gen_args_lin):
 #     #     test_one_element_inverse(test_case)
 
 
-import multiprocessing
-
-cm = None
+tm = None
 
 
 def pool_initializer():
     mcs = MonteCarloSimulation(1)
-    global cm
-    cm = CovarianceMath(mcs)
+    global tm
+    tm = TransformMath(mcs)
 
 
 def pool_test_one_element_transform(args):
     t1, t2 = args
-    t = cm.transform_transformation(t1, t2)
+    t = tm.transform_transformation(t1, t2)
     tt1 = new_Transformation(t1)
     tt2 = new_Transformation(t2)
     tt = from_Transformation(tt1.as_right_combined(tt2))
@@ -109,7 +101,7 @@ def pool_test_one_element_transform(args):
 
 def pool_test_one_element_transform_position(args):
     t1, x2 = args
-    x = cm.transform_position(t1, x2)
+    x = tm.transform_position(t1, x2)
     tt1 = new_Transformation(t1)
     xx = tt1.transform_vectors(np.array(x2).reshape(3, 1)).reshape(3)
     if not np.allclose(x, xx):
@@ -118,7 +110,7 @@ def pool_test_one_element_transform_position(args):
 
 def pool_test_one_element_inverse(args):
     t1 = args
-    t = cm.invert_transformation(t1)
+    t = tm.invert_transformation(t1)
     tt1 = new_Transformation(t1)
     tt = from_Transformation(tt1.as_inverse())
     if not transformsclose(t, tt):
@@ -141,8 +133,9 @@ if __name__ == '__main__':
         #                 for x2 in tri_gen(gen_args_lin)]
         # res = pool.map(pool_test_one_element_transform_position, test_x_cases)
 
-
-        test_1t_cases = [(t1) for t1 in transform_gen(gen_args_ang, gen_args_lin)]
+        test_1t_cases = [t1 for t1 in transform_gen(gen_args_ang, gen_args_lin)]
         res = pool.map(pool_test_one_element_inverse, test_1t_cases)
+        # res = map(pool_test_one_element_inverse, test_1t_cases)
+
 
     test()

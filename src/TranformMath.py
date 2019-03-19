@@ -10,28 +10,20 @@ import numpy as np
 # 	    L of Cholesky factorization
 # 27 -> transform with covariance vector twc
 
-class MonteCarloSimulation:
-    def __init__(self, number_of_samples):
-        self.number_of_samples = number_of_samples
-
-    def do_simulation(self, u1, cov1, func):
-        # Evaluate many times from distribution (u1, cov1), return (u, cov)
-        # func -> f(u1)
-        y = func(u1)
-        return y, None
-
-    def do_simulation_2(self, u1, cov1, u2, cov2, func):
-        # Evaluate many times from distribution (u1, cov1) and (u2, cov2). return (u, cov)
-        # func -> f(u1, u2)
-        y = func(u1, u2)
-        return y, None
-
-
-class CovarianceMath:
+class TransformMath:
     def __init__(self, sim):
         self.sim = sim
 
-    def _unpack(self, with_covariance):
+    def transformation_from_xyz_rpy(self, xyz, rpy):
+        return np.hstack((xyz, rpy))
+
+    def transformation_from_rvec_tvec(self, rvec, tvec):
+        pass
+
+    def transform_as_rvec_tvec(self, t1):
+        pass
+
+    def unpack(self, with_covariance):
         # The length of the input determines what it represents and
         # how to unpack it. The input is a 1D vector.
         n = len(with_covariance)
@@ -65,7 +57,7 @@ class CovarianceMath:
 
         return u, cov
 
-    def _pack(self, u, cov):
+    def pack(self, u, cov):
         if cov is None:
             return u
 
@@ -201,8 +193,8 @@ class CovarianceMath:
         assert (len(t1) == 6 or len(t1) == 27)
         assert (len(t2) == 6 or len(t2) == 27)
 
-        u1, cov1 = self._unpack(t1)
-        u2, cov2 = self._unpack(t2)
+        u1, cov1 = self.unpack(t1)
+        u2, cov2 = self.unpack(t2)
 
         if cov1 is not None and cov2 is not None:
             u, cov = self.sim.do_simulation_2(u1, cov1, u2, cov2,
@@ -220,15 +212,15 @@ class CovarianceMath:
             cov = None
             u = self._multi_transform_transformation(np.array([u1]), np.array([u2]))
 
-        t = self._pack(u, cov)
+        t = self.pack(u, cov)
         return t
 
     def transform_position(self, t1, x2):
         assert (len(t1) == 6 or len(t1) == 27)
         assert (len(x2) == 3 or len(x2) == 9)
 
-        u1, cov1 = self._unpack(t1)
-        u2, cov2 = self._unpack(x2)
+        u1, cov1 = self.unpack(t1)
+        u2, cov2 = self.unpack(x2)
 
         if cov1 is not None and cov2 is not None:
             u, cov = self.sim.do_simulation_2(u1, cov1, u2, cov2,
@@ -246,13 +238,13 @@ class CovarianceMath:
             cov = None
             u = self._multi_transform_position(np.array([u1]), np.array([u2]))
 
-        t = self._pack(u, cov)
+        t = self.pack(u, cov)
         return t
 
     def invert_transformation(self, t1):
         assert (len(t1) == 6 or len(t1) == 27)
 
-        u1, cov1 = self._unpack(t1)
+        u1, cov1 = self.unpack(t1)
 
         if cov1 is not None:
             u, cov = self.sim.do_simulation(u1, cov1,
@@ -262,5 +254,5 @@ class CovarianceMath:
             cov = None
             u = self._multi_invert(np.array([u1]))
 
-        t = self._pack(u, cov)
+        t = self.pack(u, cov)
         return t
