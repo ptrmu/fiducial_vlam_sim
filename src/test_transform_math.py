@@ -1,22 +1,17 @@
-from TranformMath import *
+from TransformMath import *
 from MonteCarloSimulation import *
 import Transformation
 import multiprocessing
+from timeit import default_timer as timer
 
 
 def new_Transformation(t):
-    t1 = np.zeros(6)
-    t1[0:3] = t[3:6]
-    t1[3:6] = t[0:3]
-    return Transformation.Transformation.from_cvec(t1)
+    return Transformation.Transformation.from_cvec(t)
 
 
 def from_Transformation(trans):
     t1 = trans.as_cvec()
-    t = np.zeros(6)
-    t[0:3] = t1.reshape(6)[3:6]
-    t[3:6] = t1.reshape(6)[0:3]
-    return t
+    return t1.reshape(6)
 
 
 def transformsclose(t, tt):
@@ -117,25 +112,60 @@ def pool_test_one_element_inverse(args):
         assert transformsclose(t, tt)
 
 
+def uni_map(func, test_cases):
+    for tc in test_cases:
+        func(tc)
+
+
 if __name__ == '__main__':
     def test():
-        pool = multiprocessing.Pool(6, initializer=pool_initializer, initargs=())
 
+        map_type = 2
+        if map_type == 1:
+            pool = multiprocessing.Pool(6, initializer=pool_initializer, initargs=())
+            map_func = pool.map
+
+        else:
+            pool_initializer()
+            map_func = uni_map
+
+        start_time = timer()
+
+        test_index = 3
+
+        test_func = None
         tweak = 1.0e-4
-        gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 11)
-        gen_args_lin = (-1., 2., 7)
 
-        # test_2t_cases = [(t1, t2) for t1, t2 in transform_2_gen(gen_args_ang, gen_args_lin)]
-        # res = pool.map(pool_test_one_element_transform, test_2t_cases)
+        if test_index == 1:
+            gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 11)
+            gen_args_lin = (-1., 2., 7)
+            test_cases = [(t1, t2) for t1, t2 in transform_2_gen(gen_args_ang, gen_args_lin)]
+            test_func = pool_test_one_element_transform
 
-        # test_x_cases = [(t1, x2)
-        #                 for t1 in transform_gen(gen_args_ang, gen_args_lin)
-        #                 for x2 in tri_gen(gen_args_lin)]
-        # res = pool.map(pool_test_one_element_transform_position, test_x_cases)
+        elif test_index == 2:
+            gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 11)
+            gen_args_lin = (-1., 2., 7)
+            test_cases = [(t1, x2)
+                          for t1 in transform_gen(gen_args_ang, gen_args_lin)
+                          for x2 in tri_gen(gen_args_lin)]
+            test_func = pool_test_one_element_transform_position
 
-        test_1t_cases = [t1 for t1 in transform_gen(gen_args_ang, gen_args_lin)]
-        res = pool.map(pool_test_one_element_inverse, test_1t_cases)
-        # res = map(pool_test_one_element_inverse, test_1t_cases)
+        elif test_index == 3:
+            gen_args_ang = (-np.pi + tweak, 2. * (np.pi - tweak), 5)
+            gen_args_lin = (-1., 2., 7)
+            test_cases = [t1 for t1 in transform_gen(gen_args_ang, gen_args_lin)]
+            test_func = pool_test_one_element_inverse
+
+        gen_cases_time = timer()
+
+        res = map_func(test_func, test_cases)
+
+        end_time = timer()
+
+        print("Generate test cases:", gen_cases_time - start_time,
+              "seconds, Process test_cases:", end_time - gen_cases_time,
+              "seconds")
 
 
+    print([t for t in map(lambda x: x ** 2, [x for x in range(5)])])
     test()

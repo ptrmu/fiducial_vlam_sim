@@ -17,12 +17,6 @@ class TransformMath:
     def transformation_from_xyz_rpy(self, xyz, rpy):
         return np.hstack((xyz, rpy))
 
-    def transformation_from_rvec_tvec(self, rvec, tvec):
-        pass
-
-    def transform_as_rvec_tvec(self, t1):
-        pass
-
     def unpack(self, with_covariance):
         # The length of the input determines what it represents and
         # how to unpack it. The input is a 1D vector.
@@ -120,6 +114,12 @@ class TransformMath:
 
         return np.vstack((rs, ps, ys)).transpose()
 
+    def mat_from_rpy(self, rpy):
+        return self._mats_from_rpys(np.array([rpy]))[0]
+
+    def rpy_from_mat(self, mat):
+        return self._rpys_from_mats(np.array([mat]))[0]
+
     def _multi_transform_transformation(self, u1, u2):
         n = u1.shape[0]
 
@@ -210,7 +210,7 @@ class TransformMath:
 
         else:
             cov = None
-            u = self._multi_transform_transformation(np.array([u1]), np.array([u2]))
+            u = self._multi_transform_transformation(np.array([u1]), np.array([u2]))[0]
 
         t = self.pack(u, cov)
         return t
@@ -236,7 +236,7 @@ class TransformMath:
 
         else:
             cov = None
-            u = self._multi_transform_position(np.array([u1]), np.array([u2]))
+            u = self._multi_transform_position(np.array([u1]), np.array([u2]))[0]
 
         t = self.pack(u, cov)
         return t
@@ -252,7 +252,7 @@ class TransformMath:
 
         else:
             cov = None
-            u = self._multi_invert(np.array([u1]))
+            u = self._multi_invert(np.array([u1]))[0]
 
         t = self.pack(u, cov)
         return t
